@@ -1,0 +1,11 @@
+{
+  "name": "adaptivelearn-backend",
+  "version": "1.0.0",
+  "description": "AdaptiveLearn FastAPI Backend",
+  "scripts": {
+    "dev": "uvicorn app.main:app --reload --env-file .env",
+    "dev:cloud": "uvicorn app.main:app --reload --env-file .env.production",
+    "start": "uvicorn app.main:app --host 0.0.0.0 --port 8000 --env-file .env.production",
+    "seed": "python seed.py"
+  }
+}
