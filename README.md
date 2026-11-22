@@ -1,707 +1,132 @@
 # AdaptiveLearn
 
-> An adaptive short-form learning platform that combines the engagement of short-form videos with the structured learning and assessment of online education platforms.
+> An adaptive short-form learning platform that turns educational videos into personalized, interactive learning sessions.
 
-AdaptiveLearn is a web-based educational platform where users learn through short, focused educational videos and are tested using interactive questions directly inside the learning experience.
+AdaptiveLearn combines the engagement of short-form video with quizzes, knowledge tracking, and personalized recommendations. Instead of assuming that watching means learning, the platform tests understanding and adapts future content based on each learner's performance.
 
-Instead of showing random educational content, AdaptiveLearn tracks what the learner understands and where they struggle, then uses that information to personalize future content.
-
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Problem Statement](#problem-statement)
-- [Solution](#solution)
-- [Core Idea](#core-idea)
-- [Key Features](#key-features)
-- [How It Works](#how-it-works)
-- [Adaptive Learning Flow](#adaptive-learning-flow)
-- [Example User Journey](#example-user-journey)
-- [System Architecture](#system-architecture)
-- [Technology Stack](#technology-stack)
-- [Project Structure](#project-structure)
-- [Database Design](#database-design)
-- [AI Pipeline](#ai-pipeline)
-- [Recommendation Engine](#recommendation-engine)
-- [Knowledge Tracking](#knowledge-tracking)
-- [Interactive Video Questions](#interactive-video-questions)
-- [Content Creation Pipeline](#content-creation-pipeline)
-- [API Design](#api-design)
-- [Frontend Architecture](#frontend-architecture)
-- [Authentication](#authentication)
-- [Video Processing](#video-processing)
-- [Performance Considerations](#performance-considerations)
-- [Security](#security)
-- [Development Setup](#development-setup)
-- [Environment Variables](#environment-variables)
-- [Running the Project](#running-the-project)
-- [Development Roadmap](#development-roadmap)
-- [Future Improvements](#future-improvements)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Project Goals](#project-goals)
-- [License](#license)
-
----
-
-# Overview
-
-Traditional online learning platforms provide structured courses, while short-form video platforms provide highly engaging content.
-
-AdaptiveLearn combines these two ideas:
+## How It Works
 
 ```text
-Short-form video engagement
-            +
-Interactive assessment
-            +
-Personalized learning
-            =
-        AdaptiveLearn
-````
-
-The platform is designed specifically for **educational content**.
-
-Users select topics they are interested in and receive short educational videos focused on quick learning and revision.
-
-During or after a video, the platform can present an interactive question to verify whether the learner understood the concept.
-
-The learner's responses are then used to improve future content recommendations.
-
----
-
-# Problem Statement
-
-Short-form video platforms are highly engaging, but most of the content is designed for entertainment rather than structured learning.
-
-Traditional learning platforms provide structured education, but they can require:
-
-* Long courses
-* Long lectures
-* Significant time commitment
-* Manual topic selection
-* Passive video consumption
-
-Another major problem is that watching educational content does not necessarily mean that the learner understood it.
-
-For example:
-
-```text
-User watches:
-"Python Decorators Explained"
-
-        ↓
-
-Video ends
-
-        ↓
-
-System assumes:
-"User learned decorators"
+Choose topics
+     ↓
+Watch a focused educational video
+     ↓
+Answer an interactive question
+     ↓
+Evaluate understanding
+     ↓
+Update topic mastery
+     ↓
+Recommend the next best video
 ```
 
-There is no actual evidence that the learner understood the concept.
+**Learn → Test → Diagnose → Adapt**
 
-AdaptiveLearn introduces an assessment layer:
+## Key Features
+
+- **Short educational videos** focused on one concept at a time
+- **Topic-based feeds** based on learner interests
+- **Interactive quizzes** shown during or after videos
+- **Timestamp-based questions** connected to relevant video sections
+- **Instant explanations** and relevant-content replay after an answer
+- **Knowledge tracking** for individual topics and concepts
+- **Personalized recommendations** based on interests, weaknesses, difficulty, and revision needs
+- **Quick revision** through resurfaced concepts and future spaced repetition support
+- **AI-assisted content creation** for transcripts, topic extraction, question generation, and difficulty classification
+
+## Example
+
+A learner watches a video about Python decorators and answers a question incorrectly. AdaptiveLearn records the knowledge gap, updates the learner's mastery score, explains the answer, and recommends related content for reinforcement.
 
 ```text
-Watch
+Python Decorators mastery:
+35% → 52% → 74% → 88%
+```
+
+## Architecture
+
+```text
+Next.js / React frontend
+          ↓ REST API
+FastAPI backend
+          ↓
+Learning and recommendation services
+          ↓
+PostgreSQL database
+          ↓
+LLM content pipeline
+```
+
+The platform is organized around users, topics, videos, quizzes, quiz attempts, and per-topic learning progress.
+
+## Technology Stack
+
+- **Frontend:** Next.js, React, TypeScript, Tailwind CSS
+- **Backend:** Python, FastAPI, Pydantic, SQLAlchemy
+- **Database:** PostgreSQL
+- **AI:** LLM APIs for transcript processing and question generation
+- **Infrastructure:** Docker and GitHub
+
+## AI Content Pipeline
+
+```text
+Video
   ↓
-Understand
+Speech-to-text transcript
   ↓
-Answer
+Topic and concept extraction
   ↓
-Evaluate
+Question generation
   ↓
-Identify knowledge gaps
+Difficulty classification
   ↓
-Recommend next content
+Content validation
+  ↓
+Publish
 ```
 
----
+AI-generated content should be reviewed and validated before it is made available to learners.
 
-# Solution
+## Recommendation Engine
 
-AdaptiveLearn turns passive short-form video consumption into an interactive learning loop.
+Recommendations can combine:
 
-```text
-┌───────────────┐
-│ Select Topics │
-└───────┬───────┘
-        ↓
-┌────────────────┐
-│ Watch Short    │
-│ Educational    │
-│ Video          │
-└───────┬────────┘
-        ↓
-┌────────────────┐
-│ Interactive    │
-│ Question       │
-└───────┬────────┘
-        ↓
-   ┌────┴─────┐
-   ↓          ↓
-Correct      Wrong
-   ↓          ↓
-Increase     Identify
-mastery      weakness
-   ↓          ↓
-   └────┬─────┘
-        ↓
-┌────────────────────┐
-│ Personalized Next  │
-│ Content            │
-└────────────────────┘
-```
+- Topic interests
+- Knowledge gaps and mastery scores
+- Previous quiz performance
+- Video difficulty
+- Content freshness
+- Revision priority
 
-The main principle is:
+A future version can replace the initial rule-based scoring system with a machine-learning ranking model.
 
-> **Learn → Test → Diagnose → Adapt**
-
----
-
-# Core Idea
-
-AdaptiveLearn is not intended to be another social media platform for educational videos.
-
-The primary focus is:
-
-1. Short learning sessions
-2. Active recall
-3. Knowledge-gap detection
-4. Personalized recommendations
-5. Quick revision
-
-The platform prioritizes educational value over social-media engagement.
-
----
-
-# Key Features
-
-## 1. Short Educational Videos
-
-Videos are designed to explain a specific concept quickly.
-
-Example:
+## Project Structure
 
 ```text
-Python
- └── Functions
-      ├── Arguments
-      ├── *args
-      ├── **kwargs
-      └── Decorators
-```
-
-Instead of a 30-minute lecture, the user can consume several focused videos.
-
----
-
-## 2. Topic-Based Feed
-
-Users select topics they want to learn.
-
-Example:
-
-```text
-Interests:
-
-[x] Python
-[x] Machine Learning
-[x] System Design
-[ ] Blockchain
-[ ] Chemistry
-```
-
-The feed is then generated based on these preferences.
-
----
-
-## 3. Interactive MCQs
-
-Questions can appear during or after a video.
-
-Example:
-
-```text
-┌──────────────────────────────┐
-│                              │
-│       Educational Video      │
-│                              │
-│                              │
-├──────────────────────────────┤
-│ What does *args store?       │
-│                              │
-│ ○ Dictionary                 │
-│ ○ Tuple                      │
-│ ○ List                       │
-│ ○ Set                        │
-│                              │
-│           Submit             │
-└──────────────────────────────┘
-```
-
----
-
-## 4. Timestamp-Based Questions
-
-Questions can be associated with a specific point in a video.
-
-Example:
-
-```text
-00:00 ───────────────────── 00:45
-       ↑              ↑
-    Concept        Question
-```
-
-A question can appear when the relevant concept has just been explained.
-
----
-
-## 5. Explanation After Answer
-
-The system can provide an explanation after the user answers.
-
-Example:
-
-```text
-Your answer:
-List
-
-Correct answer:
-Tuple
-
-Why?
-
-*args collects positional arguments into a tuple.
-```
-
-This turns the question into another learning opportunity.
-
----
-
-## 6. Replay Relevant Content
-
-When a learner answers incorrectly, the platform can replay the relevant section instead of forcing the user to restart the entire video.
-
-Example:
-
-```text
-Question
-   ↓
-Wrong answer
-   ↓
-Explanation
-   ↓
-Replay relevant section
-   ↓
-Follow-up question
-```
-
----
-
-## 7. Personalized Recommendations
-
-The next video is not selected purely randomly.
-
-The recommendation system can consider:
-
-* User interests
-* Previous answers
-* Incorrect answers
-* Topic mastery
-* Video difficulty
-* Previous exposure
-* Recency
-* Revision requirements
-
----
-
-## 8. Knowledge Tracking
-
-The system maintains a knowledge state for individual concepts.
-
-Example:
-
-```text
-Python Decorators       35%
-Python Functions        82%
-Python Classes          71%
-Python Generators       48%
-```
-
-This allows the system to identify weak areas.
-
----
-
-## 9. Quick Revision
-
-The system can resurface concepts that the learner has previously studied.
-
-Example:
-
-```text
-Monday:
-Python Decorators
-
-Tuesday:
-Machine Learning
-
-Wednesday:
-System Design
-
-Friday:
-Python Decorators Revision
-```
-
-This can eventually be extended into a spaced-repetition system.
-
----
-
-## 10. Educational-Only Content
-
-The platform is designed around educational content.
-
-Content categories can include:
-
-* Programming
-* Mathematics
-* Science
-* Engineering
-* Finance
-* Data Science
-* Artificial Intelligence
-* History
-* General Knowledge
-* Exam Preparation
-
----
-
-# How It Works
-
-A typical learning session looks like:
-
-```text
-User opens AdaptiveLearn
-        ↓
-Selects / confirms interests
-        ↓
-Personalized feed generated
-        ↓
-User watches educational reel
-        ↓
-Interactive question appears
-        ↓
-User submits answer
-        ↓
-System evaluates answer
-        ↓
-Knowledge state updated
-        ↓
-Recommendation engine recalculates
-        ↓
-Next video selected
-```
-
----
-
-# Adaptive Learning Flow
-
-The main learning loop is:
-
-```text
-                 ┌───────────────┐
-                 │ Watch Video   │
-                 └───────┬───────┘
-                         ↓
-                 ┌───────────────┐
-                 │ Ask Question  │
-                 └───────┬───────┘
-                         ↓
-                  ┌──────┴──────┐
-                  │   Answer    │
-                  └──────┬──────┘
-                         ↓
-              ┌──────────┴──────────┐
-              ↓                     ↓
-          Correct                  Wrong
-              ↓                     ↓
-       Increase mastery       Reduce mastery
-              ↓                     ↓
-              └──────────┬──────────┘
-                         ↓
-                Update user state
-                         ↓
-               Recommendation
-                         ↓
-                   Next Video
-```
-
----
-
-# Example User Journey
-
-Suppose the user selects:
-
-```text
-Python
-Machine Learning
-System Design
-```
-
-The system initially recommends:
-
-```text
-1. Python Decorators
-2. Bias vs Variance
-3. Load Balancing
-```
-
-The user watches:
-
-```text
-Python Decorators
-```
-
-The system asks:
-
-```text
-What is the primary purpose of a decorator?
-
-A. Modify or extend function behavior
-B. Create a database
-C. Allocate memory
-D. Compile Python code
-```
-
-The user answers incorrectly.
-
-The system records:
-
-```text
-Concept:
-Python Decorators
-
-Result:
-Incorrect
-
-Knowledge score:
-↓
-```
-
-Later, the recommendation engine prioritizes another video:
-
-```text
-"Python Decorators: Practical Example"
-```
-
-After the learner answers several questions correctly:
-
-```text
-Decorator mastery:
-35%
-      ↓
-52%
-      ↓
-74%
-      ↓
-88%
-```
-
-The system can eventually move the learner to more advanced concepts.
-
----
-
-# System Architecture
-
-```text
-                         ┌──────────────────┐
-                         │   Next.js / Web  │
-                         │     Frontend     │
-                         └────────┬─────────┘
-                                  │
-                                  │ REST API
-                                  ↓
-                         ┌──────────────────┐
-                         │     FastAPI      │
-                         │     Backend      │
-                         └────────┬─────────┘
-                                  │
-             ┌────────────────────┼────────────────────┐
-             │                    │                    │
-             ↓                    ↓                    ↓
-      ┌─────────────┐     ┌───────────────┐    ┌──────────────┐
-      │ User / Auth │     │ Learning      │    │ Content      │
-      │ Services    │     │ Engine        │    │ Service      │
-      └─────────────┘     └───────┬───────┘    └──────┬───────┘
-                                  │                    │
-                                  ↓                    ↓
-                         ┌────────────────┐    ┌──────────────┐
-                         │ Recommendation │    │ Video Store  │
-                         │ Engine         │    │ / Storage    │
-                         └───────┬────────┘    └──────────────┘
-                                 │
-                                 ↓
-                         ┌────────────────┐
-                         │  PostgreSQL    │
-                         └────────────────┘
-                                 │
-                                 ↓
-                         ┌────────────────┐
-                         │      LLM       │
-                         │    Pipeline    │
-                         └────────────────┘
-```
-
----
-
-# Technology Stack
-
-## Backend
-
-* Python
-* FastAPI
-* Pydantic
-* SQLAlchemy
-
-## Database
-
-* PostgreSQL
-
-## Frontend
-
-* Next.js
-* React
-* TypeScript
-* Tailwind CSS
-
-## AI
-
-* LLM APIs
-* LLM-based content processing
-* Automated question generation
-* Topic and difficulty classification
-
-## Development
-
-* Git
-* GitHub
-* Docker
-
----
-
-# Project Structure
-
-The initial project can follow:
-
-```text
-adaptivelearn/
-│
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── routes/
-│   │   │   │   ├── auth.py
-│   │   │   │   ├── videos.py
-│   │   │   │   ├── quizzes.py
-│   │   │   │   ├── users.py
-│   │   │   │   └── recommendations.py
-│   │   │   │
-│   │   │   └── router.py
-│   │   │
-│   │   ├── models/
-│   │   │   ├── user.py
-│   │   │   ├── video.py
-│   │   │   ├── quiz.py
-│   │   │   ├── attempt.py
-│   │   │   └── knowledge.py
-│   │   │
-│   │   ├── schemas/
-│   │   │   ├── user.py
-│   │   │   ├── video.py
-│   │   │   ├── quiz.py
-│   │   │   └── recommendation.py
-│   │   │
-│   │   ├── services/
-│   │   │   ├── video_service.py
-│   │   │   ├── quiz_service.py
-│   │   │   ├── learning_service.py
-│   │   │   └── recommendation_service.py
-│   │   │
-│   │   ├── ai/
-│   │   │   ├── question_generator.py
-│   │   │   ├── topic_extractor.py
-│   │   │   └── difficulty_classifier.py
-│   │   │
-│   │   ├── db/
-│   │   │   ├── database.py
-│   │   │   └── migrations/
-│   │   │
-│   │   ├── core/
-│   │   │   ├── config.py
-│   │   │   └── security.py
-│   │   │
-│   │   └── main.py
-│   │
-│   ├── tests/
-│   ├── requirements.txt
-│   └── Dockerfile
-│
-├── frontend/
-│   ├── app/
-│   │   ├── feed/
-│   │   ├── topics/
-│   │   ├── profile/
-│   │   └── login/
-│   │
-│   ├── components/
-│   │   ├── VideoPlayer.tsx
-│   │   ├── QuizOverlay.tsx
-│   │   ├── TopicSelector.tsx
-│   │   └── ProgressBar.tsx
-│   │
-│   ├── lib/
-│   │   └── api.ts
-│   │
-│   └── package.json
-│
-├── docs/
-│   ├── architecture.md
-│   ├── api.md
-│   └── recommendation.md
-│
+AdaptiveLearn/
+├── backend/       # FastAPI API, services, models, and tests
+├── frontend/      # Next.js web application
+├── docs/          # Architecture and API documentation
+├── .env.example   # Environment variable template
 ├── docker-compose.yml
-├── .env.example
-├── .gitignore
 └── README.md
 ```
 
----
+## Development Setup
 
-# Database Design
+### Prerequisites
 
-The core database entities are:
+- Python 3.11+
+- Node.js 20+
+- PostgreSQL
+- Git
+- Docker (optional)
 
-```text
-User
- │
- ├── UserInterest
- │
- ├── LearningProgress
- │
- └── QuizAttempt
-             │
-             ↓
-           Quiz
-             │
-             ↓
-           Video
-             │
-             ↓
-          Topic
+### Clone the repository
+
+```bash
+git clone https://github.com/AdhishthanAshok/AdaptiveLearn.git
+cd AdaptiveLearn
 ```
 
 ---
@@ -1216,213 +641,70 @@ Potential optimizations:
 
 ### Backend
 
-* Async FastAPI endpoints
-* Database indexing
-* Pagination
-* Efficient recommendation queries
-* Connection pooling
-
-### Frontend
-
-* Lazy video loading
-* Prefetch next video
-* Video buffering
-* Optimized thumbnails
-* Client-side caching
-
-### Database
-
-Indexes should be added for frequently queried fields such as:
-
-```text
-user_id
-topic_id
-video_id
-created_at
-difficulty
-```
-
----
-
-# Security
-
-The backend should follow standard API security practices.
-
-Important considerations:
-
-* Password hashing
-* Authentication middleware
-* Authorization checks
-* Input validation
-* SQL injection protection
-* Rate limiting
-* Secure environment variables
-* File upload validation
-* Video upload size limits
-
-Secrets should never be committed to Git.
-
----
-
-# Development Setup
-
-## Prerequisites
-
-Install:
-
-* Python 3.11+
-* Node.js 20+
-* PostgreSQL
-* Git
-
-Optional:
-
-* Docker
-* Docker Compose
-
----
-
-# Clone Repository
-
-```bash
-git clone https://github.com/<username>/adaptivelearn.git
-
-cd adaptivelearn
-```
-
----
-
-# Backend Setup
-
 ```bash
 cd backend
-
 python -m venv venv
-```
 
-### Windows
-
-```bash
-venv\Scripts\activate
-```
-
-### Linux / macOS
-
-```bash
+# macOS/Linux
 source venv/bin/activate
-```
 
-Install dependencies:
+# Windows
+venv\\Scripts\\activate
 
-```bash
 pip install -r requirements.txt
-```
-
----
-
-# Frontend Setup
-
-```bash
-cd frontend
-
-npm install
-```
-
----
-
-# Environment Variables
-
-Create:
-
-```text
-.env
-```
-
-Example:
-
-```env
-DATABASE_URL=postgresql://postgres:password@localhost:5432/adaptivelearn
-
-SECRET_KEY=your_secret_key
-
-LLM_API_KEY=your_api_key
-
-VIDEO_STORAGE_URL=your_storage_url
-```
-
-Never commit `.env`.
-
-Use:
-
-```text
-.env.example
-```
-
-for documenting required environment variables.
-
----
-
-# Running the Backend
-
-From the backend directory:
-
-```bash
 uvicorn app.main:app --reload
 ```
 
-Backend:
+The API is available at `http://localhost:8000`, with interactive documentation at `http://localhost:8000/docs`.
 
-```text
-http://localhost:8000
-```
-
-FastAPI documentation:
-
-```text
-http://localhost:8000/docs
-```
-
----
-
-# Running the Frontend
-
-From the frontend directory:
+### Frontend
 
 ```bash
+cd frontend
+npm install
 npm run dev
 ```
 
-Frontend:
+The web application is available at `http://localhost:3000`.
 
-```text
-http://localhost:3000
+### Environment Variables
+
+Create a `.env` file using `.env.example` as a reference:
+
+```env
+DATABASE_URL=postgresql://postgres:password@localhost:5432/adaptivelearn
+SECRET_KEY=your_secret_key
+LLM_API_KEY=your_api_key
+VIDEO_STORAGE_URL=your_storage_url
 ```
 
----
+Never commit secrets or the `.env` file.
 
-# Docker
-
-The project can eventually support running the complete development environment using Docker Compose.
-
-Example:
+### Docker
 
 ```bash
 docker compose up --build
 ```
 
-Services:
+## Roadmap
 
-```text
-Frontend
-Backend
-PostgreSQL
-```
+- [ ] Authentication and user profiles
+- [ ] Topic selection and personalized feed
+- [ ] Video upload and playback
+- [ ] Interactive and timestamp-based quizzes
+- [ ] Quiz explanations and answer history
+- [ ] Topic mastery and knowledge-gap tracking
+- [ ] Personalized recommendations
+- [ ] AI-assisted transcription and question generation
+- [ ] Revision scheduling and spaced repetition
+- [ ] Performance analytics and creator tools
+- [ ] Mobile applications
 
----
+## Project Status
 
-# Development Roadmap
+**In development.** The initial goal is to validate the web-based learning experience before expanding to mobile platforms and more advanced recommendation models.
 
-## Phase 1 — Foundation
+## License
 
 * [x] Repository setup
 * [x] FastAPI backend
