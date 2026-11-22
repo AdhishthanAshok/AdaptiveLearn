@@ -5,6 +5,7 @@
 import { getToken, AuthUser, saveAuth } from './auth';
 
 const API_BASE_URL = process.env.NEXT_API_URL || 'https://adaptivelearn-backend.vercel.app';
+const API_V1 = `${API_BASE_URL}/api/v1`;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -88,7 +89,7 @@ export async function registerUser(
   password: string,
   role: string,
 ): Promise<TokenResponse> {
-  const res = await fetch(`${API_BASE_URL}/auth/register`, {
+  const res = await fetch(`${API_V1}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, role }),
@@ -103,7 +104,7 @@ export async function registerUser(
 }
 
 export async function loginUser(email: string, password: string): Promise<TokenResponse> {
-  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+  const res = await fetch(`${API_V1}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -118,7 +119,7 @@ export async function loginUser(email: string, password: string): Promise<TokenR
 }
 
 export async function fetchMe(): Promise<AuthUser> {
-  const res = await authFetch(`${API_BASE_URL}/auth/me`);
+  const res = await authFetch(`${API_V1}/auth/me`);
   if (!res.ok) throw new Error('Not authenticated');
   return res.json();
 }
@@ -127,14 +128,14 @@ export async function fetchMe(): Promise<AuthUser> {
 // Feed & video endpoints
 // ---------------------------------------------------------------------------
 export async function fetchFeed(): Promise<Video[]> {
-  const res = await fetch(`${API_BASE_URL}/feed`, { cache: 'no-store' });
+  const res = await fetch(`${API_V1}/feed`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch feed');
   const data = await res.json();
   return data.videos;
 }
 
 export async function incrementVideoView(videoId: number): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/videos/${videoId}/view`, {
+  const res = await fetch(`${API_V1}/videos/${videoId}/view`, {
     method: 'POST',
   });
   if (!res.ok) throw new Error('Failed to increment view count');
@@ -144,14 +145,14 @@ export async function incrementVideoView(videoId: number): Promise<void> {
 // Quiz endpoints
 // ---------------------------------------------------------------------------
 export async function fetchQuiz(videoId: number): Promise<Quiz | null> {
-  const res = await fetch(`${API_BASE_URL}/videos/${videoId}/quiz`, { cache: 'no-store' });
+  const res = await fetch(`${API_V1}/videos/${videoId}/quiz`, { cache: 'no-store' });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error('Failed to fetch quiz');
   return res.json();
 }
 
 export async function submitAnswer(quizId: number, optionId: number): Promise<AnswerResponse> {
-  const res = await authFetch(`${API_BASE_URL}/quizzes/${quizId}/attempt`, {
+  const res = await authFetch(`${API_V1}/quizzes/${quizId}/attempt`, {
     method: 'POST',
     body: JSON.stringify({ selected_option_id: optionId }),
   });
@@ -160,7 +161,7 @@ export async function submitAnswer(quizId: number, optionId: number): Promise<An
 }
 
 export async function fetchQuizHistory(): Promise<QuizHistoryStats> {
-  const res = await authFetch(`${API_BASE_URL}/quizzes/history`);
+  const res = await authFetch(`${API_V1}/quizzes/history`);
   if (!res.ok) throw new Error('Failed to fetch quiz history');
   return res.json();
 }
@@ -175,7 +176,7 @@ export async function createVideo(video: {
   duration: number;
   difficulty: string;
 }): Promise<Video> {
-  const res = await authFetch(`${API_BASE_URL}/educator/videos`, {
+  const res = await authFetch(`${API_V1}/educator/videos`, {
     method: 'POST',
     body: JSON.stringify(video),
   });
@@ -187,7 +188,7 @@ export async function createVideo(video: {
 }
 
 export async function fetchMyVideos(): Promise<Video[]> {
-  const res = await authFetch(`${API_BASE_URL}/educator/videos`);
+  const res = await authFetch(`${API_V1}/educator/videos`);
   if (!res.ok) throw new Error('Failed to fetch videos');
   return res.json();
 }
@@ -201,7 +202,7 @@ export async function createQuizForVideo(
     options: { option_text: string; is_correct: boolean }[];
   },
 ): Promise<Quiz> {
-  const res = await authFetch(`${API_BASE_URL}/educator/videos/${videoId}/quiz`, {
+  const res = await authFetch(`${API_V1}/educator/videos/${videoId}/quiz`, {
     method: 'POST',
     body: JSON.stringify(quiz),
   });
