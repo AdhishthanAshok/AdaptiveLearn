@@ -1,26 +1,37 @@
 """
-This script seeds the database with sample data.
-It works seamlessly across both local PostgreSQL and Aiven cloud PostgreSQL.
-Uses bcrypt to properly hash passwords for seeded users.
+This script seeds MongoDB with sample data using Beanie async ODM.
+Run from the backend directory:  python seed.py
 """
-from app.db.database import SessionLocal, engine, Base
-from app.models.models import Video, Quiz, QuizOption, User, QuizAttempt
+import asyncio
+import os
+import uuid
+
+from motor.motor_asyncio import AsyncIOMotorClient
+import beanie
+
 from app.core.config import settings
 from app.core.security import hash_password
+from app.models.models import User, Video, Quiz, QuizOption, QuizAttempt
 
 
-def seed_db():
-    # Mask password in URL for display
-    url = str(engine.url)
-    if engine.url.password:
-        url = url.replace(engine.url.password, "******")
-    print(f"Connecting to database [{settings.ENVIRONMENT}]: {url}")
+async def seed_db() -> None:
+    print(f"Connecting to MongoDB [{settings.ENVIRONMENT}]: {settings.MONGODB_URL}")
 
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
+    client = AsyncIOMotorClient(settings.MONGODB_URL)
+    database = client[settings.DATABASE_NAME]
 
-    # Seed users with properly hashed passwords
+    await beanie.init_beanie(
+        database=database,
+        document_models=[User, Video, Quiz, QuizAttempt],
+    )
+
+    # Drop existing collections for a clean reseed
+    await User.find_all().delete()
+    await Video.find_all().delete()
+    await Quiz.find_all().delete()
+    await QuizAttempt.find_all().delete()
+
+    # ------------------------------------------------------------------ users
     student = User(
         email="student@example.com",
         password_hash=hash_password("Student@123"),
@@ -31,14 +42,12 @@ def seed_db():
         password_hash=hash_password("Educator@123"),
         role="educator",
     )
-    db.add_all([student, educator])
-    db.commit()
-    db.refresh(student)
-    db.refresh(educator)
+    await student.insert()
+    await educator.insert()
 
-    # Read video URLs from videos.txt
-    video_urls = []
-    import os
+    # ------------------------------------------------------------------ videos
+    # Read video URLs from videos.txt (optional)
+    video_urls: list[str] = []
     videos_txt_path = os.path.join(
         os.path.dirname(__file__), "..", "frontend", "public", "videos.txt"
     )
@@ -46,7 +55,6 @@ def seed_db():
         with open(videos_txt_path, "r") as f:
             video_urls = [line.strip() for line in f if line.strip()]
 
-    # Fallbacks in case videos.txt is missing or doesn't have enough lines
     url1 = video_urls[0] if len(video_urls) > 0 else "/videos/video1.mp4"
     url2 = video_urls[1] if len(video_urls) > 1 else "/videos/video2.mp4"
 
@@ -58,7 +66,6 @@ def seed_db():
         difficulty="medium",
         created_by=educator.id,
     )
-
     v2 = Video(
         title="Intro to Machine Learning",
         description="What is ML and how does it work?",
@@ -67,66 +74,66 @@ def seed_db():
         difficulty="easy",
         created_by=educator.id,
     )
+    await v1.insert()
+    await v2.insert()
 
-    db.add(v1)
-    db.add(v2)
-    db.commit()
-    db.refresh(v1)
-    db.refresh(v2)
+    # ------------------------------------------------------------------ quizzes (embedded options)
+    qo1_id = uuid.uuid4().hex
+    qo2_id = uuid.uuid4().hex
+    qo3_id = uuid.uuid4().hex
 
     q1 = Quiz(
         video_id=v1.id,
         question="What is the primary purpose of a Python decorator?",
         timestamp=10.0,
         explanation="Decorators allow you to modify or extend the behavior of a function without changing its source code.",
+        options=[
+            QuizOption(id=qo1_id, option_text="Modify or extend function behavior", is_correct=True),
+            QuizOption(id=qo2_id, option_text="Create a database connection", is_correct=False),
+            QuizOption(id=qo3_id, option_text="Allocate memory", is_correct=False),
+        ],
     )
-    db.add(q1)
-    db.commit()
-    db.refresh(q1)
+    await q1.insert()
 
-    qo1 = QuizOption(quiz_id=q1.id, option_text="Modify or extend function behavior", is_correct=True)
-    qo2 = QuizOption(quiz_id=q1.id, option_text="Create a database connection", is_correct=False)
-    qo3 = QuizOption(quiz_id=q1.id, option_text="Allocate memory", is_correct=False)
-    db.add_all([qo1, qo2, qo3])
-    db.commit()
-    db.refresh(qo1)
+    qo4_id = uuid.uuid4().hex
+    qo5_id = uuid.uuid4().hex
+    qo6_id = uuid.uuid4().hex
 
     q2 = Quiz(
         video_id=v2.id,
         question="Which of the following is NOT a type of Machine Learning?",
         timestamp=20.0,
         explanation="Supervised, Unsupervised, and Reinforcement are the main types. Magic is not.",
+        options=[
+            QuizOption(id=qo4_id, option_text="Supervised Learning", is_correct=False),
+            QuizOption(id=qo5_id, option_text="Magic Learning", is_correct=True),
+            QuizOption(id=qo6_id, option_text="Reinforcement Learning", is_correct=False),
+        ],
     )
-    db.add(q2)
-    db.commit()
-    db.refresh(q2)
+    await q2.insert()
 
-    qo4 = QuizOption(quiz_id=q2.id, option_text="Supervised Learning", is_correct=False)
-    qo5 = QuizOption(quiz_id=q2.id, option_text="Magic Learning", is_correct=True)
-    qo6 = QuizOption(quiz_id=q2.id, option_text="Reinforcement Learning", is_correct=False)
-    db.add_all([qo4, qo5, qo6])
-    db.commit()
-
-    # Seed sample quiz attempts for the student
+    # ------------------------------------------------------------------ quiz attempts
     attempt1 = QuizAttempt(
         user_id=student.id,
         quiz_id=q1.id,
-        selected_option_id=qo1.id,
+        selected_option_id=qo1_id,
         is_correct=True,
     )
     attempt2 = QuizAttempt(
         user_id=student.id,
         quiz_id=q2.id,
-        selected_option_id=qo4.id,
+        selected_option_id=qo4_id,
         is_correct=False,
     )
-    db.add_all([attempt1, attempt2])
-    db.commit()
+    await attempt1.insert()
+    await attempt2.insert()
 
-    print("Database seeded successfully!")
-    print(f"  Student login:  student@example.com / Student@123")
-    print(f"  Educator login: educator@example.com / Educator@123")
+    client.close()
+
+    print("MongoDB seeded successfully!")
+    print("  Student login:  student@example.com / Student@123")
+    print("  Educator login: educator@example.com / Educator@123")
 
 
 if __name__ == "__main__":
-    seed_db()
+    asyncio.run(seed_db())

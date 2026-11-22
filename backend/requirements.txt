@@ -1,9 +1,9 @@
 fastapi
 uvicorn
-sqlalchemy
+beanie>=1.26.0
+motor>=3.6.0
 pydantic
 pydantic-settings
-psycopg2-binary
 python-dotenv
 bcrypt
 python-jose[cryptography]

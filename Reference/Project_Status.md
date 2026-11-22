@@ -12,10 +12,11 @@ We have successfully laid the foundation for the project, focusing on a clean ar
 ### Steps Done Till Now:
 1. **Backend Foundation (FastAPI)**:
    - Established scalable backend architecture (`app/api/routes`, `app/models`, `app/schemas`, `app/db`).
-   - Initialized an SQLite database for V1 development.
-   - Created database models for `Video`, `Quiz`, and `QuizOption`.
-   - Exposed REST endpoints (`GET /api/v1/feed`, `GET /api/v1/videos/{id}/quiz`, `POST /api/v1/quizzes/{id}/attempt`).
-   - Created a seed script (`seed.py`) to prepopulate the database with placeholder educational concepts.
+   - Integrated PostgreSQL database (local for dev, Aiven for production).
+   - Created database models for `Video`, `Quiz`, `QuizOption`, `User`, and `QuizAttempt`.
+   - Implemented role-based access control (Student vs Educator).
+   - Exposed REST endpoints (`GET /api/v1/feed`, `GET /api/v1/videos/{id}/quiz`, `POST /api/v1/quizzes/{id}/attempt`, plus auth and educator routes).
+   - Created a robust seed script (`seed.py`) with hashed passwords and placeholder educational content.
    - Documented code files with explanations of their purpose.
 
 2. **Frontend Foundation (Next.js & Tailwind CSS)**:
@@ -35,15 +36,11 @@ We have successfully laid the foundation for the project, focusing on a clean ar
 To bring the project to its complete vision, the following steps and milestones are remaining:
 
 ### Upcoming Steps:
-1. **Database Migration**:
-   - Migrate from the development SQLite database to a robust PostgreSQL database.
-2. **User Authentication System**:
-   - While roles exist in the DB, actual user sign-up, login, and secure sessions need to be implemented.
-3. **Knowledge Tracking System**:
+1. **Knowledge Tracking System**:
    - Develop backend models and logic to track individual user progress, topic mastery, and weak points over time.
-4. **Recommendation Engine**:
+2. **Recommendation Engine**:
    - Build a personalized feed algorithm that prioritizes content based on user interests, previous quiz performance, and required revisions (spaced repetition).
-5. **AI Pipeline Integration**:
+3. **AI Pipeline Integration**:
    - Integrate LLMs to automate the processing of videos, transcript generation, topic extraction, and automated quiz generation.
 6. **Content Management**:
    - Create a pipeline or admin dashboard to upload, process, and manage educational videos seamlessly.

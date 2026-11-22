@@ -35,27 +35,19 @@ if not loaded:
             load_dotenv(dotenv_path=candidate, override=False)
             break
 
+
 class Settings(BaseSettings):
     ENVIRONMENT: str = env_name
-    DATABASE_URL: str = "postgresql://localhost:5432/my_database"
+    MONGODB_URL: str = "mongodb://localhost:27017"
+    DATABASE_NAME: str = "adaptivelearn"
     JWT_SECRET_KEY: str = "dev-secret-change-me-in-production-8f3a9b2c"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     CORS_ORIGINS: list[str] = ["*"]
 
-    @property
-    def sync_database_url(self) -> str:
-        """
-        Ensures the SQLAlchemy database URL uses the standard 'postgresql://' dialect
-        instead of deprecated 'postgres://'.
-        """
-        url = self.DATABASE_URL
-        if url.startswith("postgres://"):
-            url = url.replace("postgres://", "postgresql://", 1)
-        return url
-
     model_config = {
         "extra": "ignore",
     }
+
 
 settings = Settings()

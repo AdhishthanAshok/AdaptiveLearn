@@ -1,11 +1,12 @@
 /**
  * Authentication page — combined login and register with role selection.
  * Features a premium dark UI with password strength validation feedback.
+ * Supports query params: ?email=...&password=...&role=... for 1-click demo login.
  */
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { registerUser, loginUser } from '../../lib/api';
 import { Eye, EyeOff, GraduationCap, BookOpen, LogIn, UserPlus, AlertCircle } from 'lucide-react';
 
@@ -22,11 +23,13 @@ const PASSWORD_CHECKS: PasswordCheck[] = [
   { label: 'One uppercase letter', test: (v) => /[A-Z]/.test(v) },
   { label: 'One lowercase letter', test: (v) => /[a-z]/.test(v) },
   { label: 'One digit', test: (v) => /[0-9]/.test(v) },
-  { label: 'One special character', test: (v) => /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/~`]/.test(v) },
+  { label: 'One special character', test: (v) => /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/~`]/.test(v) },
 ];
 
-export default function AuthPage() {
+function AuthForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,6 +37,20 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Pre-fill from query params (demo login support)
+  useEffect(() => {
+    const qEmail = searchParams.get('email');
+    const qPassword = searchParams.get('password');
+    const qRole = searchParams.get('role') as Role | null;
+
+    if (qEmail || qPassword || qRole) {
+      if (qEmail) setEmail(qEmail);
+      if (qPassword) setPassword(qPassword);
+      if (qRole && (qRole === 'student' || qRole === 'educator')) setRole(qRole);
+      setMode('login');
+    }
+  }, [searchParams]);
 
   const allChecksPassed = PASSWORD_CHECKS.every((c) => c.test(password));
 
@@ -50,10 +67,10 @@ export default function AuthPage() {
           return;
         }
         const data = await registerUser(email, password, role);
-        router.push(data.user.role === 'educator' ? '/educator' : '/');
+        router.push(data.user.role === 'educator' ? '/educator' : '/feed');
       } else {
         const data = await loginUser(email, password);
-        router.push(data.user.role === 'educator' ? '/educator' : '/');
+        router.push(data.user.role === 'educator' ? '/educator' : '/feed');
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -228,5 +245,17 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <AuthForm />
+    </Suspense>
   );
 }

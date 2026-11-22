@@ -1,81 +1,84 @@
 """
-This file defines the SQLAlchemy database models for the application.
-It contains the schemas for Video, Quiz, QuizOption, User, and QuizAttempt
-entities mapping to database tables.
+This file defines the Beanie Document models for the application.
+Replaces SQLAlchemy ORM models with async MongoDB documents.
+MongoDB's _id is exposed as `id: str` via Beanie's Settings.json_schema_extra
+and a custom serialiser so the frontend receives the same shape as before.
 """
 from datetime import datetime, timezone
+from typing import Optional
+import uuid
 
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, DateTime
-from sqlalchemy.orm import relationship
-from app.db.database import Base
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)
-    role = Column(String, default="student", nullable=False)  # "student" or "educator"
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    last_active_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-
-    # Relationships
-    quiz_attempts = relationship("QuizAttempt", back_populates="user", cascade="all, delete-orphan")
-    videos = relationship("Video", back_populates="creator", cascade="all, delete-orphan")
+from beanie import Document, Indexed, PydanticObjectId
+from pydantic import BaseModel, Field
 
 
-class Video(Base):
-    __tablename__ = "videos"
-
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, index=True)
-    description = Column(String)
-    video_url = Column(String)
-    duration = Column(Integer)
-    difficulty = Column(String)
-    view_count = Column(Integer, default=0)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-
-    creator = relationship("User", back_populates="videos")
-    quizzes = relationship("Quiz", back_populates="video", cascade="all, delete-orphan")
+# ---------------------------------------------------------------------------
+# Embedded sub-document (not a Collection)
+# ---------------------------------------------------------------------------
+class QuizOption(BaseModel):
+    """Embedded option inside a Quiz document."""
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex)
+    option_text: str
+    is_correct: bool = False
 
 
-class Quiz(Base):
-    __tablename__ = "quizzes"
+# ---------------------------------------------------------------------------
+# User document  →  collection: users
+# ---------------------------------------------------------------------------
+class User(Document):
+    email: Indexed(str, unique=True)  # type: ignore[valid-type]
+    password_hash: str
+    role: str = "student"  # "student" | "educator"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_active_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    id = Column(Integer, primary_key=True, index=True)
-    video_id = Column(Integer, ForeignKey("videos.id"))
-    question = Column(String)
-    timestamp = Column(Float)
-    explanation = Column(String)
+    class Settings:
+        name = "users"
 
-    video = relationship("Video", back_populates="quizzes")
-    options = relationship("QuizOption", back_populates="quiz", cascade="all, delete-orphan")
-    attempts = relationship("QuizAttempt", back_populates="quiz", cascade="all, delete-orphan")
-
-
-class QuizOption(Base):
-    __tablename__ = "quiz_options"
-
-    id = Column(Integer, primary_key=True, index=True)
-    quiz_id = Column(Integer, ForeignKey("quizzes.id"))
-    option_text = Column(String)
-    is_correct = Column(Boolean, default=False)
-
-    quiz = relationship("Quiz", back_populates="options")
+    @property
+    def id_str(self) -> str:
+        return str(self.id)
 
 
-class QuizAttempt(Base):
-    __tablename__ = "quiz_attempts"
+# ---------------------------------------------------------------------------
+# Video document  →  collection: videos
+# ---------------------------------------------------------------------------
+class Video(Document):
+    title: str
+    description: str
+    video_url: str
+    duration: int
+    difficulty: str
+    view_count: int = 0
+    created_by: Optional[PydanticObjectId] = None  # ObjectId of the creator User
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False)
-    selected_option_id = Column(Integer, ForeignKey("quiz_options.id"), nullable=False)
-    is_correct = Column(Boolean, nullable=False)
-    attempted_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    class Settings:
+        name = "videos"
 
-    user = relationship("User", back_populates="quiz_attempts")
-    quiz = relationship("Quiz", back_populates="attempts")
-    selected_option = relationship("QuizOption")
+
+# ---------------------------------------------------------------------------
+# Quiz document (options embedded)  →  collection: quizzes
+# ---------------------------------------------------------------------------
+class Quiz(Document):
+    video_id: PydanticObjectId
+    question: str
+    timestamp: float = 0.0
+    explanation: str = ""
+    options: list[QuizOption] = []
+
+    class Settings:
+        name = "quizzes"
+
+
+# ---------------------------------------------------------------------------
+# QuizAttempt document  →  collection: quiz_attempts
+# ---------------------------------------------------------------------------
+class QuizAttempt(Document):
+    user_id: PydanticObjectId
+    quiz_id: PydanticObjectId
+    selected_option_id: str   # uuid hex matching QuizOption.id
+    is_correct: bool
+    attempted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    class Settings:
+        name = "quiz_attempts"

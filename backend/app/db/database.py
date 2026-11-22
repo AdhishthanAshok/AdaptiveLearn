@@ -1,27 +1,35 @@
 """
-This file sets up the SQLAlchemy database engine and session configuration.
-Uses PostgreSQL exclusively (local or Aiven cloud) with connection pooling.
+This file sets up the MongoDB connection and Beanie ODM initialization.
+Uses Motor async driver with Beanie for async document models.
 """
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from motor.motor_asyncio import AsyncIOMotorClient
+import beanie
+
 from app.core.config import settings
 
-SQLALCHEMY_DATABASE_URL = settings.sync_database_url
+# Module-level client reference so it can be closed on shutdown
+_motor_client: AsyncIOMotorClient | None = None
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    pool_pre_ping=True,   # Reconnects automatically if connection is dropped by cloud firewall
-    pool_recycle=300,      # Recycle connections after 5 minutes
-)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base = declarative_base()
+async def init_db() -> None:
+    """Initialize Beanie with the Motor client and all Document models."""
+    global _motor_client
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    # Deferred import to avoid circular dependency at module load time
+    from app.models.models import User, Video, Quiz, QuizAttempt
 
+    _motor_client = AsyncIOMotorClient(settings.MONGODB_URL)
+    database = _motor_client[settings.DATABASE_NAME]
+
+    await beanie.init_beanie(
+        database=database,
+        document_models=[User, Video, Quiz, QuizAttempt],
+    )
+
+
+async def close_db() -> None:
+    """Close the Motor client gracefully on application shutdown."""
+    global _motor_client
+    if _motor_client is not None:
+        _motor_client.close()
+        _motor_client = None

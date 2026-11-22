@@ -1,31 +1,12 @@
-```text
-Local development → Local PostgreSQL
-Production        → Aiven PostgreSQL
-```
+# Database Integration & Architecture
 
-And ideally:
-
-```bash
-npm run dev       → local DB
-npm run dev:cloud → Aiven DB
-npm run start     → production/cloud DB
-```
-
-Here is the short document I'd give Antigravity.
-
----
-
-# Aiven PostgreSQL — Cloud Database Integration
+This document describes the database configuration for the AdaptiveLearn project.
 
 ## Goal
 
-The project already has a working local PostgreSQL database and database integration.
+The project uses PostgreSQL for all data storage. The setup is designed to seamlessly switch between local development and cloud production environments without changing the underlying architecture or ORM logic.
 
-**Do not change the existing database architecture, ORM, schema, models, or migrations.**
-
-Only modify the database connection configuration so that different environments can use different PostgreSQL instances.
-
-### Required behavior
+### Environments
 
 ```text
 Local development
@@ -37,108 +18,55 @@ Cloud / Production
 Aiven PostgreSQL
 ```
 
-## Environment variables
+## Environment Variables
 
-Keep the existing local database configuration:
+### Local Environment
+For local development, the database connection is managed via the `.env` file located in the `backend/` directory:
 
 ```env
-# .env
-DATABASE_URL=postgresql://localhost:5432/my_database
+# backend/.env
+DATABASE_URL=postgresql://postgres:password@localhost:5432/adaptivelearn
+ENVIRONMENT=development
 ```
 
-Add a separate production/cloud environment file:
+### Production Environment
+For cloud deployments (or cloud testing), the database connection is managed via the `.env.production` file:
 
 ```env
-# .env.production
+# backend/.env.production
 DATABASE_URL=postgresql://avnadmin:PASSWORD@AIVEN_HOST:AIVEN_PORT/DATABASE_NAME?sslmode=require
+ENVIRONMENT=production
 ```
 
-**Do not hardcode the Aiven credentials anywhere in the source code.**
+**Important**: Aiven credentials are not hardcoded anywhere in the source code. The actual `DATABASE_URL` is provided through environment variables and secrets in the CI/CD pipeline or hosting platform.
 
-The actual Aiven `DATABASE_URL` will be provided through environment variables/secrets.
+## Configuration Details
 
-## Aiven configuration
+- **Database Engine**: PostgreSQL
+- **ORM**: SQLAlchemy (Python)
+- **Local Connection**: Requires a local PostgreSQL instance running.
+- **Aiven Connection**: Requires `sslmode=require` in the connection string.
 
-Aiven PostgreSQL:
+## Running the Application
 
-```text
-Project: resume-projects
-Service: postgres-main
-User: avnadmin
-SSL: Required
-```
+The application can load different environments using standard Python `python-dotenv` mechanisms. In `backend/app/core/config.py`, settings are loaded from `.env` or `.env.production` depending on the environment.
 
-Use the database created for this application.
-
-The Aiven connection must use:
-
-```text
-sslmode=require
-```
-
-## Scripts
-
-Modify the existing package scripts only as necessary so that:
-
+### Local Development
+To run the backend against the local database:
 ```bash
-npm run dev
+cd backend
+uvicorn app.main:app --reload
 ```
 
-continues using the **local database**.
-
-A separate command may be added for cloud testing, for example:
-
+### Seeding the Database
+A seed script is provided to pre-populate either environment with roles and sample content.
 ```bash
-npm run dev:cloud
+python backend/seed.py
 ```
+This script respects the active environment configuration, correctly seeding either the local instance or the Aiven cloud database.
 
-which loads the cloud/Aiven environment.
-
-Production should automatically use the production environment:
-
-```bash
-npm run build
-npm start
-```
-
-Use the environment-loading mechanism appropriate for the project's existing framework. **Do not introduce unnecessary dependencies.**
-
-## Important
-
-- Keep the existing local DB working exactly as it does now.
-- Do not duplicate database configuration/code.
-- Do not change existing models/schema.
-- Do not create a second ORM.
-- Do not hardcode Aiven credentials.
-- Do not expose `DATABASE_URL` to the frontend.
-- Do not commit production credentials to Git.
-- Use Aiven's SSL connection.
-- Verify both local and cloud connections after the change.
-
-## Expected result
-
-```text
-npm run dev
-       ↓
-.env
-       ↓
-LOCAL PostgreSQL
-
-
-npm run dev:cloud
-       ↓
-.env.production / cloud environment
-       ↓
-AIVEN PostgreSQL
-
-
-Production deployment
-       ↓
-Production environment variable
-       ↓
-AIVEN PostgreSQL
-```
-
-### Antigravity instruction
-
-> Inspect the existing project first. Make the **minimum possible changes** required to support separate local and Aiven PostgreSQL connections. Preserve the existing database layer completely. Implement environment-based switching and give me the exact commands/files changed after implementation.
+## Principles Followed
+- No duplicated database configuration/code.
+- Unified SQLAlchemy models and schemas.
+- No hardcoded cloud credentials.
+- Aiven SSL requirement strictly enforced via `sslmode=require`.

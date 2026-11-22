@@ -1,6 +1,7 @@
 """
 This file defines the Pydantic schemas for data validation and API request/response modeling.
 Includes definitions for auth, video, quiz, quiz history, and educator operations.
+Updated for MongoDB: id fields are `str` (ObjectId hex) instead of `int`.
 """
 import re
 from datetime import datetime
@@ -35,7 +36,7 @@ class UserRegister(BaseModel):
             raise ValueError("Password must contain at least one lowercase letter")
         if not re.search(r"[0-9]", v):
             raise ValueError("Password must contain at least one digit")
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>_\-+=\[\]\\\/~`]", v):
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>_\-+=\[\]\\/~`]", v):
             raise ValueError("Password must contain at least one special character")
         return v
 
@@ -53,7 +54,11 @@ class UserLogin(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: int
+    """
+    API response for a user.
+    Maps Beanie Document's ObjectId `id` to a string for frontend compatibility.
+    """
+    id: str
     email: str
     role: str
 
@@ -70,7 +75,7 @@ class TokenResponse(BaseModel):
 # Quiz option schemas
 # ---------------------------------------------------------------------------
 class QuizOptionBase(BaseModel):
-    id: int
+    id: str
     option_text: str
     is_correct: bool
 
@@ -81,8 +86,8 @@ class QuizOptionBase(BaseModel):
 # Quiz schemas
 # ---------------------------------------------------------------------------
 class QuizBase(BaseModel):
-    id: int
-    video_id: int
+    id: str
+    video_id: str
     question: str
     timestamp: float
     explanation: str
@@ -95,14 +100,14 @@ class QuizBase(BaseModel):
 # Video schemas
 # ---------------------------------------------------------------------------
 class VideoBase(BaseModel):
-    id: int
+    id: str
     title: str
     description: str
     video_url: str
     duration: int
     difficulty: str
     view_count: int = 0
-    created_by: Optional[int] = None
+    created_by: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -115,21 +120,21 @@ class FeedResponse(BaseModel):
 # Quiz attempt / submission schemas
 # ---------------------------------------------------------------------------
 class AnswerSubmission(BaseModel):
-    selected_option_id: int
+    selected_option_id: str  # uuid hex of the chosen QuizOption
 
 
 class AnswerResponse(BaseModel):
     is_correct: bool
     explanation: str
-    correct_option_id: int
+    correct_option_id: str
 
 
 # ---------------------------------------------------------------------------
 # Quiz history schemas (student)
 # ---------------------------------------------------------------------------
 class QuizAttemptDetail(BaseModel):
-    id: int
-    quiz_id: int
+    id: str
+    quiz_id: str
     question: str
     video_title: str
     selected_option_text: str

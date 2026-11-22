@@ -2,18 +2,18 @@
 Security module for authentication and authorization.
 Provides password hashing (bcrypt), JWT token creation/verification,
 and FastAPI dependencies for protecting routes by role.
+Now uses Beanie async queries instead of SQLAlchemy.
 """
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import bcrypt
+from beanie import PydanticObjectId
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
-from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.db.database import get_db
 
 # ---------------------------------------------------------------------------
 # Password hashing (using bcrypt directly for compatibility)
@@ -56,11 +56,10 @@ def decode_access_token(token: str) -> dict:
 bearer_scheme = HTTPBearer()
 
 
-def get_current_user(
+async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    db: Session = Depends(get_db),
 ):
-    """Decode JWT and return the User ORM object. Updates last_active_at."""
+    """Decode JWT and return the User document. Updates last_active_at."""
     from app.models.models import User  # deferred import to avoid circular deps
 
     token = credentials.credentials
@@ -71,28 +70,28 @@ def get_current_user(
     )
     try:
         payload = decode_access_token(token)
-        user_id_str = payload.get("sub")
-        user_id = int(user_id_str) if user_id_str is not None else None
-        if user_id is None:
+        user_id_str: Optional[str] = payload.get("sub")
+        if user_id_str is None:
             raise credentials_exception
-    except JWTError:
+        user_id = PydanticObjectId(user_id_str)
+    except (JWTError, Exception):
         raise credentials_exception
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = await User.get(user_id)
     if user is None:
         raise credentials_exception
 
     # Update last_active_at on every authenticated request
     user.last_active_at = datetime.now(timezone.utc)
-    db.commit()
+    await user.save()
 
     return user
 
 
 def require_role(role: str):
-    """Dependency factory — returns a dependency that enforces the given role."""
+    """Dependency factory — returns an async dependency that enforces the given role."""
 
-    def role_checker(current_user=Depends(get_current_user)):
+    async def role_checker(current_user=Depends(get_current_user)):
         if current_user.role != role:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

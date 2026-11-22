@@ -721,7 +721,7 @@ email
 password_hash
 role (student/educator)
 created_at
-updated_at
+last_active_at
 ```
 
 ---
@@ -765,9 +765,8 @@ description
 video_url
 duration
 difficulty
-transcript
 view_count
-created_at
+created_by (educator)
 ```
 
 ---
@@ -825,9 +824,9 @@ quiz_attempts
 id
 user_id
 quiz_id
-selected_option
+selected_option_id
 is_correct
-answered_at
+attempted_at
 ```
 
 ---
@@ -1428,11 +1427,11 @@ PostgreSQL
 
 ## Phase 1 — Foundation
 
-* [ ] Repository setup
-* [ ] FastAPI backend
-* [ ] PostgreSQL database
-* [ ] Next.js frontend
-* [ ] Authentication
+* [x] Repository setup
+* [x] FastAPI backend
+* [x] PostgreSQL database
+* [x] Next.js frontend
+* [x] Authentication
 * [ ] Basic user profile
 
 ---
