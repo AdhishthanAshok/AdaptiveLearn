@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-beanie>=1.26.0
+beanie>=1.26.0,<2.0.0
 motor>=3.6.0
 pydantic
 pydantic-settings
